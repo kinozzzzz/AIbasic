@@ -56,9 +56,7 @@ class NaiveBayesModel:
             return 0
 
 def buildGraph(dim, num_classes): #dim: 输入一维向量长度， num_classes: 分类数
-    # 填写网络结构，请参考lab2相关部分
-    # 填写代码前，请确定已经将lab2写好的BaseNode.py与BaseGraph.py放在autograd文件夹下
-    nodes = []
+    nodes = [Linear(dim,50),relu(),BatchNorm(50),Linear(50,num_classes),LogSoftmax(),NLLLoss(1)]
     graph = Graph(nodes)
     return graph
 
@@ -77,11 +75,13 @@ class Embedding():
     def __call__(self, text):
         # 利用self.emb将句子映射为一个一维向量，注意，同时需要修改训练代码中的网络维度部分
         # 数据格式可以参考lab2
-        ret = 0
+        ret = np.zeros((1,100))
         for word in text:
-            ret += self.emb[word]
+            try:
+                ret += self.emb[word]
+            except Exception:
+                pass
         return ret
-
 
 class MLPModel():
     def __init__(self):
@@ -96,7 +96,6 @@ class MLPModel():
         pred = self.network.forward(X, removelossnode=1)[-1]
         haty = np.argmax(pred, axis=1)
         return haty[0]
-
 
 class QAModel():
     def __init__(self):
@@ -137,20 +136,19 @@ modeldict = {
 
 if __name__ == '__main__':
     embedding = Embedding()
-    lr = 1e-3   # 学习率
+    lr = 1e-3 / 2  # 学习率
     wd1 = 1e-4  # L1正则化
     wd2 = 1e-4  # L2正则化
     batchsize = 64
-    max_epoch = 10
+    max_epoch = 150
     dp = 0.1
 
     graph = buildGraph(100, 2) # 维度需要自己修改
-
+    print(np.array([[1,2,3]]).shape)
     # 训练
     best_train_acc = 0
     # dataloader = traindataset() # 完整训练集
     dataloader = minitraindataset() # 用来调试的小训练集
-
     for i in range(1, max_epoch+1):
         hatys = []
         ys = []
@@ -160,16 +158,14 @@ if __name__ == '__main__':
         Y = []
         cnt = 0
         for text, label in dataloader:
-            #print(text,label)
             x = embedding(text)
             label = np.zeros((1)).astype(np.int32) + label
-            print(text,label)
             X.append(x)
             Y.append(label)
             cnt += 1
             if cnt == batchsize:
-                X = np.concatenate(X, 0)
-                Y = np.concatenate(Y, 0)
+                X = np.concatenate(X, axis=0)
+                Y = np.concatenate(Y, axis=0)
                 graph[-1].y = Y
                 graph.flush()
                 pred, loss = graph.forward(X)[-2:]

@@ -306,7 +306,7 @@ class NLLLoss(Node):
     # shape value: number 
     # 输入：x: (*) 个预测，每个预测是个d维向量，代表d个类别上分别的log概率。  y：(*) 个整数类别标签
     # 输出：NLL损失
-    def __init__(self, y):
+    def __init__(self,y):
         """
         初始化
         @param y: n 样本的label
