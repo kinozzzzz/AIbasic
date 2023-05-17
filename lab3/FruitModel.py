@@ -18,27 +18,44 @@ class NullModel:
 class NaiveBayesModel:
     def __init__(self):
         self.dataset = traindataset() # 完整训练集
-        # self.dataset = minitraindataset() # 用来调试的小训练集
 
         # 以下内容可根据需要自行修改
-        self.token_num = [{}, {}] # token在正负样本中出现次数
         self.V = 0 #语料库token数量
         self.pos_neg_num = [0, 0] # 正负样本数量
+        self.alpha = 1
+        self.token_num = [{},{}]
         self.count()
+        self.prob = [self.pos_neg_num[0]/(self.pos_neg_num[0]+self.pos_neg_num[1]),self.pos_neg_num[1]/(sum(self.pos_neg_num))]
+        print(self.prob)
 
     def count(self):
-        # TODO: YOUR CODE HERE
         # 提示：统计token分布不需要返回值
-        raise NotImplementedError # 由于没有返回值，提交时请删掉这一行
+        print("start count")
+        for sentence,label in self.dataset:
+            for word in sentence:
+                    if self.token_num[label].get(word):
+                        self.token_num[label][word] += 1
+                    else:
+                        self.token_num[label][word] = 1
+                        self.V += 1
+            self.pos_neg_num[label] += 1
+        print("count finished")
 
     def __call__(self, text):
-        # TODO: YOUR CODE HERE
         # 返回1或0代表当前句子分类为正/负样本
-        raise NotImplementedError
+        prob = self.prob.copy()
+        for word in text:
+            for i in range(2):
+                if self.token_num[i].get(word):
+                    prob[i] *= (self.token_num[i][word] + self.alpha) / (self.pos_neg_num[i] + self.alpha)
+                else:
+                    prob[i] *= self.alpha / (self.pos_neg_num[i] + self.alpha)
+        if prob[0] <= prob[1]:
+            return 1
+        else:
+            return 0
 
-
-def buildGraph(dim, num_classes): #dim: 输入一维向量长度， num_classes:分类数
-    # TODO: YOUR CODE HERE
+def buildGraph(dim, num_classes): #dim: 输入一维向量长度， num_classes: 分类数
     # 填写网络结构，请参考lab2相关部分
     # 填写代码前，请确定已经将lab2写好的BaseNode.py与BaseGraph.py放在autograd文件夹下
     nodes = []
@@ -133,6 +150,7 @@ if __name__ == '__main__':
     best_train_acc = 0
     # dataloader = traindataset() # 完整训练集
     dataloader = minitraindataset() # 用来调试的小训练集
+
     for i in range(1, max_epoch+1):
         hatys = []
         ys = []
@@ -142,13 +160,12 @@ if __name__ == '__main__':
         Y = []
         cnt = 0
         for text, label in dataloader:
-            print(text,label)
+            #print(text,label)
             x = embedding(text)
             label = np.zeros((1)).astype(np.int32) + label
             print(text,label)
             X.append(x)
             Y.append(label)
-            exit()
             cnt += 1
             if cnt == batchsize:
                 X = np.concatenate(X, 0)
