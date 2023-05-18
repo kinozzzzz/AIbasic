@@ -99,31 +99,50 @@ class MLPModel():
 
 class QAModel():
     def __init__(self):
-        self.document_list = get_document()
+        self.document_list = get_document() # 不去重
 
     def tf(self, word, document):
-        # TODO: YOUR CODE HERE
         # 返回单词在文档中的频度
-        raise NotImplementedError  
+        word_num = len(document)
+        if word_num <= 4:
+            return 0
+        return document.count(word) / word_num
 
-    def idf(self, word):
-        # TODO: YOUR CODE HERE
+    def idf(self, word, documents):
         # 返回单词IDF值，提示：你需要利用self.document_list来遍历所有文档
-        raise NotImplementedError  
+        word_num = 0
+        for document in documents:
+            if word in document:
+                word_num += 1
+        return math.log10(len(documents)/(1+word_num))
     
-    def tfidf(self, word, document):
-        # TODO: YOUR CODE HERE
+    def tfidf(self, word, documents):
         # 返回TF-IDF值
-        raise NotImplementedError  
+        ret = []
+        idf = self.idf(word,documents)
+        for document in documents:
+            ret.append(self.tf(word,document) * idf)
+        return ret
 
     def __call__(self, query):
         query = tokenize(query) # 将问题token化
-        # TODO: YOUR CODE HERE
+
         # 利用上述函数来实现QA
         # 提示：你需要根据TF-IDF值来选择一个最合适的文档，再根据TF-IDF值选择最合适的句子
         # 返回时请返回原本句子，而不是token化后的句子，可以参考README中数据结构部分以及fruit.py中用于数据处理的get_document()函数
+        tfidf = np.zeros(len(self.document_list))
+        for word in query:
+            tfidf = tfidf + np.array(self.tfidf(word,[x['document'] for x in self.document_list]))
+        idx1 = np.argmax(tfidf)
+        #print(tfidf,idx1)
 
-        raise NotImplementedError
+        tfidf = np.zeros(len(self.document_list[idx1]['sentences']))
+        for word in query:
+            tfidf = tfidf + np.array(self.tfidf(word,[x[0] for x in self.document_list[idx1]['sentences']]))
+        #print(tfidf)
+        idx2 = np.argmax(tfidf)
+
+        return self.document_list[idx1]['sentences'][idx2][1]
             
 
 modeldict = {
@@ -142,7 +161,6 @@ if __name__ == '__main__':
     batchsize = 64
     max_epoch = 150
     dp = 0.1
-
     graph = buildGraph(100, 2) # 维度需要自己修改
     print(np.array([[1,2,3]]).shape)
     # 训练
